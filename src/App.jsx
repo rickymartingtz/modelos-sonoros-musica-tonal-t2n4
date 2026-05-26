@@ -1,32 +1,27 @@
 // App.jsx — composición principal de Modelos Sonoros: Música Tonal.
-// Mantiene el estado global (pilar activo, tónica, nivel, instrumento) y delega
-// el render a las tarjetas de cada pilar.
 
 import { useEffect, useState } from "react";
 import TopBar from "./components/TopBar";
 import ChordCard from "./components/ChordCard";
 import ScaleCard from "./components/ScaleCard";
 import FormulaCard from "./components/FormulaCard";
-import { SectionLabel } from "./components/UI";
+import { SelectionChip } from "./components/UI";
 import { CHORDS } from "./theory/chords";
 import { SCALES, SCALE_FAMILIES } from "./theory/scales";
 import {
-  TONIC_FORMULAS_MAJOR,
-  TONIC_FORMULAS_HARMONIC_MINOR,
-  TONIC_FORMULAS_MELODIC_MINOR_ASC,
-  TONIC_FORMULAS_NATURAL_MINOR,
+  getFormulasByMode,
+  TONIC_MODES,
 } from "./theory/formulas";
 import { loadInstrument, unlockAudio } from "./audio/AudioEngine";
 
 export default function App() {
-  const [activePillar, setActivePillar] = useState("escalas");
-  const [rootMidi, setRootMidi] = useState(60); // C4 por defecto
+  const [activePillar, setActivePillar] = useState("tonica");
+  const [rootMidi, setRootMidi] = useState(60); // C4
   const [level, setLevel] = useState(4);
   const [instrument, setInstrument] = useState("acoustic_grand_piano");
-  const [tonicMode, setTonicMode] = useState("major"); // para fórmulas a la tónica
+  const [tonicMode, setTonicMode] = useState("major");
   const [audioReady, setAudioReady] = useState(false);
 
-  // Carga inicial del instrumento (después del primer clic para evitar bloqueo del navegador)
   useEffect(() => {
     if (!audioReady) return;
     loadInstrument(instrument).catch((err) => {
@@ -40,7 +35,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f4f0] pb-20" onClick={handleUnlock}>
+    <div className="min-h-screen bg-zinc-50 pb-20" onClick={handleUnlock}>
       <TopBar
         activePillar={activePillar}
         onPillarChange={setActivePillar}
@@ -52,10 +47,10 @@ export default function App() {
         onInstrumentChange={setInstrument}
       />
 
-      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+      <main className="mx-auto max-w-6xl px-4 py-5 sm:px-6">
         {!audioReady ? (
-          <div className="mb-6 rounded-2xl border border-mint-300 bg-mint-50 px-4 py-3 text-xs text-mint-800">
-            Toca cualquier lugar para activar el audio. El soundfont (≈4 MB) se descarga la primera vez.
+          <div className="mb-4 rounded-2xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+            Toca cualquier lugar para activar el audio. El soundfont se descarga la primera vez (≈4&nbsp;MB).
           </div>
         ) : null}
 
@@ -69,11 +64,7 @@ export default function App() {
         ) : null}
 
         {activePillar === "fundamental" ? (
-          <FundamentalSection
-            rootMidi={rootMidi}
-            onRootChange={setRootMidi}
-            level={level}
-          />
+          <FundamentalSection rootMidi={rootMidi} onRootChange={setRootMidi} level={level} />
         ) : null}
 
         {activePillar === "escalas" ? (
@@ -85,62 +76,34 @@ export default function App() {
         ) : null}
       </main>
 
-      <footer className="mx-auto max-w-6xl px-4 pb-10 pt-6 text-center text-[10px] uppercase tracking-[0.16em] text-ink-500 sm:px-6">
+      <footer className="mx-auto max-w-6xl px-4 pb-6 text-center text-[10px] uppercase tracking-[0.16em] text-zinc-500 sm:px-6">
         Método Aural · Modelos sonoros para música tonal
       </footer>
     </div>
   );
 }
 
-// ===== Sección: Fórmulas a la tónica =====
+// ===== Fórmulas a la tónica =====
 function TonicaSection({ rootMidi, onRootChange, tonicMode, onModeChange }) {
-  const FORMULA_SETS = {
-    major: { formulas: TONIC_FORMULAS_MAJOR, color: "ink" },
-    harmonicMinor: { formulas: TONIC_FORMULAS_HARMONIC_MINOR, color: "mint" },
-    melodicMinorAsc: { formulas: TONIC_FORMULAS_MELODIC_MINOR_ASC, color: "mint" },
-    naturalMinor: { formulas: TONIC_FORMULAS_NATURAL_MINOR, color: "ink" },
-  };
-  const set = FORMULA_SETS[tonicMode];
+  const formulas = getFormulasByMode(tonicMode);
 
   return (
     <section>
-      <SectionHeader
-        title="Fórmulas a la tónica"
-        subtitle="Reconocer la gravedad melódica de cada grado hacia la tónica. Establece la tonalidad con la cadencia y canta la fórmula."
-      />
-
-      {/* Selector de modo */}
-      <div className="mb-5 flex flex-wrap items-center gap-1.5">
-        <span className="text-[10px] uppercase tracking-[0.12em] text-ink-500">Modo:</span>
-        {[
-          ["major", "Mayor"],
-          ["harmonicMinor", "Menor armónica"],
-          ["melodicMinorAsc", "Menor melódica asc."],
-          ["naturalMinor", "Menor natural"],
-        ].map(([k, label]) => (
-          <button
-            key={k}
-            onClick={() => onModeChange(k)}
-            className={`rounded-full border px-3 py-1 text-[11px] font-medium transition ${
-              tonicMode === k
-                ? "border-mint-600 bg-mint-50 text-mint-800"
-                : "border-ink-300 bg-white text-ink-700 hover:border-ink-500"
-            }`}
-          >
-            {label}
-          </button>
+      <div className="mb-4 flex flex-wrap items-center gap-1.5">
+        {Object.entries(TONIC_MODES).map(([k, v]) => (
+          <SelectionChip key={k} active={tonicMode === k} onClick={() => onModeChange(k)}>
+            {v.label}
+          </SelectionChip>
         ))}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        {set.formulas.map((f) => (
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        {formulas.map((f) => (
           <FormulaCard
             key={f.id}
             formula={f}
             rootMidi={rootMidi}
             onRootChange={onRootChange}
-            mode={tonicMode}
-            color={set.color}
           />
         ))}
       </div>
@@ -148,16 +111,12 @@ function TonicaSection({ rootMidi, onRootChange, tonicMode, onModeChange }) {
   );
 }
 
-// ===== Sección: Fórmulas a la fundamental =====
+// ===== Fórmulas a la fundamental =====
 function FundamentalSection({ rootMidi, onRootChange, level }) {
   const chords = CHORDS.filter((c) => c.level <= level);
   return (
     <section>
-      <SectionHeader
-        title="Fórmulas a la fundamental"
-        subtitle="Identificar cualquier nota de un acorde y conducirla hasta la fundamental. La fórmula puede tocarse sola, sólo con la armonía, o ambas simultáneamente."
-      />
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         {chords.map((chord) => (
           <ChordCard
             key={chord.id}
@@ -172,11 +131,10 @@ function FundamentalSection({ rootMidi, onRootChange, level }) {
   );
 }
 
-// ===== Sección: Escalas =====
+// ===== Escalas =====
 function EscalasSection({ rootMidi, onRootChange, level }) {
   const scales = SCALES.filter((s) => s.level <= level);
 
-  // Agrupar por familia
   const byFamily = {};
   scales.forEach((s) => {
     if (!byFamily[s.family]) byFamily[s.family] = [];
@@ -198,25 +156,19 @@ function EscalasSection({ rootMidi, onRootChange, level }) {
 
   return (
     <section>
-      <SectionHeader
-        title="Escalas"
-        subtitle="Catálogo extendido: diatónicas, modos, pentatónicas, hexáfonas, octatónicas, modos de Messiaen, sintéticas y aproximaciones de tradiciones no-occidentales."
-      />
       {orderedFamilies.map((fam) => {
         const items = byFamily[fam];
         if (!items?.length) return null;
         const family = SCALE_FAMILIES[fam];
         return (
-          <div key={fam} className="mb-8">
-            <div className="mb-3 flex items-center gap-3">
-              <h2 className="font-display text-xl font-medium text-ink-900">
+          <div key={fam} className="mb-6">
+            <div className="mb-2 flex items-center gap-2">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-700">
                 {family.label}
               </h2>
-              <span className="text-[10px] uppercase tracking-[0.12em] text-ink-500">
-                {items.length} modelo{items.length === 1 ? "" : "s"}
-              </span>
+              <span className="text-[10px] text-zinc-400">{items.length}</span>
             </div>
-            <div className="grid gap-5 lg:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               {items.map((scale) => (
                 <ScaleCard
                   key={scale.id}
@@ -233,16 +185,12 @@ function EscalasSection({ rootMidi, onRootChange, level }) {
   );
 }
 
-// ===== Sección: Arpegios =====
+// ===== Arpegios =====
 function ArpegiosSection({ rootMidi, onRootChange, level }) {
   const chords = CHORDS.filter((c) => c.level <= level);
   return (
     <section>
-      <SectionHeader
-        title="Arpegios"
-        subtitle="Cantar el acorde nota por nota, en sus inversiones, en ambas direcciones. El acorde en bloque se reproduce con botón aparte para confirmar la sonoridad armónica."
-      />
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {chords.map((chord) => (
           <ChordCard
             key={chord.id}
@@ -254,14 +202,5 @@ function ArpegiosSection({ rootMidi, onRootChange, level }) {
         ))}
       </div>
     </section>
-  );
-}
-
-function SectionHeader({ title, subtitle }) {
-  return (
-    <div className="mb-6">
-      <h1 className="font-display text-3xl font-medium text-ink-950 sm:text-4xl">{title}</h1>
-      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-600">{subtitle}</p>
-    </div>
   );
 }
